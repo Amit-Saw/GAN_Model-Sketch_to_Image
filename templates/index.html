@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sketch to Image Studio</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+      :root {
+        --bg: #f4efe6;
+        --paper: #fffdf9;
+        --ink: #1f2c3a;
+        --muted: #5f6e7e;
+        --primary: #16697a;
+        --primary-strong: #0f4d5b;
+        --secondary: #f2a65a;
+        --line: #d8d2c7;
+        --danger: #b71c1c;
+        --shadow: 0 20px 60px rgba(27, 36, 45, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        width: 100%;
+      }
+
+      body {
+        font-family: "Space Grotesk", "Trebuchet MS", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 10% 15%, rgba(242, 166, 90, 0.22), transparent 30%),
+          radial-gradient(circle at 85% 15%, rgba(22, 105, 122, 0.2), transparent 28%),
+          linear-gradient(170deg, #f9f5ee 0%, #f4efe6 52%, #eee7da 100%);
+      }
+
+      .mesh {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.45;
+        background-image: linear-gradient(transparent 95%, rgba(31, 44, 58, 0.08) 100%),
+          linear-gradient(90deg, transparent 95%, rgba(31, 44, 58, 0.08) 100%);
+        background-size: 26px 26px;
+        mask-image: radial-gradient(circle at center, black 35%, transparent 100%);
+      }
+
+      .container {
+        width: 100%;
+        min-height: 100vh;
+        margin: 0;
+        padding: clamp(1rem, 2.4vw, 2.2rem);
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .header {
+        margin-bottom: 1.2rem;
+        animation: rise 0.5s ease;
+      }
+
+      .eyebrow {
+        display: inline-block;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 0.35rem 0.55rem;
+        border-radius: 999px;
+        color: var(--primary-strong);
+        background: rgba(22, 105, 122, 0.14);
+        margin-bottom: 0.85rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.85rem, 4vw, 2.8rem);
+        line-height: 1.1;
+      }
+
+      .sub {
+        max-width: 62ch;
+        color: var(--muted);
+        margin-top: 0.8rem;
+      }
+
+      .panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        align-items: stretch;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 1.15rem;
+        box-shadow: var(--shadow);
+        animation: rise 0.6s ease;
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+      }
+
+      .card h2 {
+        margin: 0 0 0.9rem;
+        font-size: 1.2rem;
+      }
+
+      .dropzone {
+        border: 2px dashed #c5beaf;
+        border-radius: 16px;
+        padding: 1rem;
+        background: linear-gradient(145deg, #fffaf2, #f6f1e7);
+        transition: border-color 0.2s ease, transform 0.2s ease;
+      }
+
+      .dropzone:hover {
+        border-color: var(--primary);
+        transform: translateY(-1px);
+      }
+
+      .dropzone p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .controls {
+        margin-top: 0.95rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        align-items: center;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      input[type="file"] {
+        max-width: 100%;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.82rem;
+        color: var(--ink);
+        background: white;
+        border: 1px solid #c7c0b1;
+        border-radius: 10px;
+        padding: 0.6rem;
+      }
+
+      button {
+        border: 0;
+        border-radius: 12px;
+        padding: 0.72rem 1rem;
+        background: linear-gradient(120deg, var(--primary), #20889d);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        min-width: 172px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(15, 77, 91, 0.28);
+      }
+
+      button:disabled {
+        opacity: 0.75;
+        cursor: wait;
+      }
+
+      .note {
+        margin-top: 0.8rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .error {
+        margin: 0 0 1rem;
+        padding: 0.8rem 1rem;
+        border-radius: 10px;
+        color: var(--danger);
+        background: #ffe5e5;
+        border: 1px solid #f5bbbb;
+      }
+
+      .media-box {
+        min-height: 0;
+        aspect-ratio: 1 / 1;
+        max-height: 460px;
+        border: 1px solid #cdc6b8;
+        border-radius: 16px;
+        background: linear-gradient(160deg, #f7f2e9, #f3ede2);
+        overflow: hidden;
+        position: relative;
+        width: min(100%, 460px);
+        margin: 0 auto;
+      }
+
+      .media-box img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+      }
+
+      .placeholder {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        color: #7d8a98;
+        padding: 1rem;
+      }
+
+      .status {
+        margin-top: 0.65rem;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .kpis {
+        margin-top: 0.8rem;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+      }
+
+      .kpi {
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 0.55rem;
+      }
+
+      .kpi span {
+        display: block;
+      }
+
+      .kpi .k {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .kpi .v {
+        margin-top: 0.15rem;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 0.85rem;
+      }
+
+      .footer {
+        margin-top: 0.9rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .result-note {
+        margin-top: 0.8rem;
+        text-align: center;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      @keyframes rise {
+        from {
+          transform: translateY(8px);
+          opacity: 0;
+        }
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .container {
+          min-height: auto;
+          padding: 0.85rem;
+        }
+
+        .panel {
+          grid-template-columns: 1fr;
+          align-items: stretch;
+        }
+
+        .media-box {
+          width: 100%;
+          max-height: none;
+        }
+
+        .kpis {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mesh"></div>
+
+    <main class="container">
+      <header class="header">
+        <div class="eyebrow">Sketch to Image Pipeline</div>
+        <h1>Turn rough sketches into polished visuals in one click.</h1>
+        <p class="sub">
+          Upload your sketch and let the GAN model generate the final image. This interface is designed for quick iteration,
+          easy previews, and deployment-ready usage.
+        </p>
+      </header>
+
+      <p class="error hidden" id="errorBox"></p>
+
+      <section class="panel">
+        <article class="card">
+          <h2>Input Sketch</h2>
+          <form action="/predict" method="post" enctype="multipart/form-data" id="uploadForm">
+            <div class="dropzone">
+              <p>Choose a sketch file (PNG, JPG, JPEG, WEBP)</p>
+              <div class="controls">
+                <input type="file" name="sketch" id="sketchFile" accept="image/png,image/jpeg,image/webp" required />
+                <button type="submit" id="submitBtn" class="hidden" disabled>Generate Output</button>
+              </div>
+              <div class="status" id="statusText">Upload a sketch to enable generation.</div>
+            </div>
+
+            <div class="media-box" style="margin-top: 1rem">
+              <div class="placeholder" id="previewPlaceholder">Your uploaded sketch will appear here.</div>
+              <img id="previewImage" alt="Uploaded sketch preview" style="display: none" />
+            </div>
+          </form>
+
+          <p class="note">Tip: clear, high-contrast line art usually gives better generated results.</p>
+
+          <div class="kpis">
+            <div class="kpi">
+              <span class="k">Model</span>
+              <span class="v">assets/generator.pt</span>
+            </div>
+            <div class="kpi">
+              <span class="k">Input Size</span>
+              <span class="v">256 x 256</span>
+            </div>
+            <div class="kpi">
+              <span class="k">Mode</span>
+              <span class="v">TorchScript</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>Generated Output</h2>
+          <div class="media-box">
+            <div class="placeholder" id="outputPlaceholder">Generated image will appear here after you click Generate Output.</div>
+            <img id="outputImage" alt="Generated output" style="display: none" />
+          </div>
+
+          <p class="result-note">Output is kept in memory only and is not stored on disk.</p>
+          <div class="footer">Workflow: Upload on the left, then generate to view result on the right.</div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const fileInput = document.getElementById("sketchFile");
+      const previewImage = document.getElementById("previewImage");
+      const previewPlaceholder = document.getElementById("previewPlaceholder");
+      const uploadForm = document.getElementById("uploadForm");
+      const submitBtn = document.getElementById("submitBtn");
+      const statusText = document.getElementById("statusText");
+      const errorBox = document.getElementById("errorBox");
+      const outputImage = document.getElementById("outputImage");
+      const outputPlaceholder = document.getElementById("outputPlaceholder");
+
+      const resetUiState = () => {
+        uploadForm.reset();
+        previewImage.removeAttribute("src");
+        previewImage.style.display = "none";
+        previewPlaceholder.style.display = "block";
+        outputImage.removeAttribute("src");
+        outputImage.style.display = "none";
+        outputPlaceholder.style.display = "block";
+        submitBtn.classList.add("hidden");
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Generate Output";
+        statusText.textContent = "Upload a sketch to enable generation.";
+        errorBox.textContent = "";
+        errorBox.classList.add("hidden");
+      };
+
+      const setPreview = (dataUrl) => {
+        previewImage.src = dataUrl;
+        previewImage.style.display = "block";
+        previewPlaceholder.style.display = "none";
+      };
+
+      // Always start with a clean UI after page refresh/navigation.
+      window.addEventListener("pageshow", resetUiState);
+
+      fileInput.addEventListener("change", function () {
+        const file = this.files && this.files[0];
+        if (!file) {
+          previewImage.style.display = "none";
+          previewPlaceholder.style.display = "block";
+          submitBtn.classList.add("hidden");
+          submitBtn.disabled = true;
+          statusText.textContent = "Upload a sketch to enable generation.";
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const dataUrl = event.target.result;
+          setPreview(dataUrl);
+
+          submitBtn.classList.remove("hidden");
+          submitBtn.disabled = false;
+          statusText.textContent = "File loaded. Ready to generate.";
+          errorBox.textContent = "";
+          errorBox.classList.add("hidden");
+        };
+        reader.readAsDataURL(file);
+      });
+
+      uploadForm.addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const selectedFile = fileInput.files && fileInput.files[0];
+        if (!selectedFile) {
+          statusText.textContent = "Please choose an image first.";
+          errorBox.textContent = "Please upload a sketch image.";
+          errorBox.classList.remove("hidden");
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Generating...";
+        statusText.textContent = "Running model inference...";
+
+        const formData = new FormData(uploadForm);
+
+        try {
+          const response = await fetch("/predict", {
+            method: "POST",
+            body: formData,
+            cache: "no-store",
+          });
+          const payload = await response.json();
+
+          if (!response.ok || !payload.ok) {
+            throw new Error(payload.error || "Generation failed.");
+          }
+
+          outputImage.src = payload.generated_image_url;
+          outputImage.style.display = "block";
+          outputPlaceholder.style.display = "none";
+          statusText.textContent = "Generation completed.";
+          errorBox.textContent = "";
+          errorBox.classList.add("hidden");
+        } catch (error) {
+          outputImage.removeAttribute("src");
+          outputImage.style.display = "none";
+          outputPlaceholder.style.display = "block";
+          statusText.textContent = "Generation failed.";
+          errorBox.textContent = error.message || "Something went wrong while generating output.";
+          errorBox.classList.remove("hidden");
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Generate Output";
+        }
+      });
+    </script>
+  </body>
+</html>
